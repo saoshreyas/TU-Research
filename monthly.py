@@ -27,10 +27,6 @@ def plot_car_energy_usage(user_date):
     # Identify peaks in the data
     peaks, _ = find_peaks(df_trimmed)
 
-    # Debugging: Print the peaks
-    # print("Peaks found at positions:", peaks)
-    # print("Peak values:", df_trimmed[peaks])
-
     # Process the initial segment if it exists
     if len(peaks) > 0:
         first_peak = peaks[0]
@@ -44,19 +40,14 @@ def plot_car_energy_usage(user_date):
         segment_start = peaks[i - 1]
         segment_end = peaks[i]
         last_segment = segment_end + 1
-        while ((df_trimmed[segment_start] > 0.0 or df_trimmed[segment_start+1] > 0.0)and df_trimmed[segment_start] < 3.0):
+        while ((df_trimmed[segment_start] > 0.0 or df_trimmed[segment_start + 1] > 0.0) and df_trimmed[segment_start] < 3.0):
             df_trimmed[segment_start] = 0
             segment_start += 1
         while df_trimmed[segment_end] > 0.0 and df_trimmed[segment_end] < 3.0:
             df_trimmed[segment_end] = 0
             segment_end -= 1
 
-        # Debugging: Print the current segment range
-        # print(f"Segment {i}: Start = {segment_start}, End = {segment_end}")
-
         segment_max = df_trimmed[segment_start:segment_end].max()
-        # print(f"Segment {i} max value: {segment_max}")
-
         if segment_max < 3.0:
             df_trimmed[segment_start:segment_end] = 0
 
@@ -68,11 +59,71 @@ def plot_car_energy_usage(user_date):
 
     return array, df_trimmed
 
+# Dictionary of binary values to corresponding numbers
+binary_dict = {
+    "00000": 0,
+    "00001": 1,
+    "00010": 2,
+    "00011": 3,
+    "00100": 4,
+    "00101": 5,
+    "00110": 6,
+    "00111": 7,
+    "01000": 8,
+    "01001": 9,
+    "01010": 10,
+    "01011": 11,
+    "01100": 12,
+    "01101": 13,
+    "01110": 14,
+    "01111": 15,
+    "10000": 16,
+    "10001": 17,
+    "10010": 18,
+    "10011": 19,
+    "10100": 20,
+    "10101": 21,
+    "10110": 22,
+    "10111": 23,
+    "11000": 24,
+    "11001": 25,
+    "11010": 26,
+    "11011": 27,
+    "11100": 28,
+    "11101": 29,
+    "11110": 30,
+    "11111": 31,
+}
+
+def get_peak_binary_value(df_trimmed):
+    # Define the time intervals
+    intervals = [
+        (0, 4 * 60 + 59),     # 00:00 - 04:59
+        (5 * 60, 9 * 60 + 59), # 05:00 - 09:59
+        (10 * 60, 13 * 60 + 59),# 10:00 - 13:59
+        (14 * 60, 18 * 60 + 59),# 14:00 - 18:59
+        (19 * 60, 23 * 60 + 59) # 19:00 - 23:59
+    ]
+
+    binary_value = ''
+
+    for start, end in intervals:
+        segment = df_trimmed[start:end + 1]
+        if segment.max() > 0:
+            binary_value += '1'
+        else:
+            binary_value += '0'
+
+    return binary_value
+
 def plot_monthly_data(start_date):
     # Generate a list of dates for the month (30 days)
-    dates = [start_date + timedelta(days=i) for i in range(32)]
+    dates = [start_date + timedelta(days=i) for i in range(31)]
 
     plt.figure(figsize=(12, 8))
+
+    # Prepare table data
+    table_data = []
 
     for date in dates:
         user_date = date.strftime('%Y-%m-%d')
@@ -81,8 +132,24 @@ def plot_monthly_data(start_date):
         array, df_trimmed = plot_car_energy_usage(user_date)
 
         if array is not None and df_trimmed is not None:
+            # Get the binary peak value and its corresponding number
+            binary_value = get_peak_binary_value(df_trimmed)
+            result = binary_dict.get(binary_value, None)
+            
+            # Calculate total kWh for the day
+            total_kwh = ((df_trimmed.sum())/60)
+            
+            # Append data to table
+            table_data.append([user_date, binary_value, result, f"{total_kwh:.2f} kWh"])
+
             # Plot the data
             plt.plot(array, df_trimmed, label=f'{user_date}')
+
+    # Print the table
+    print(f"{'Date':<12} {'Binary':<8} {'Value':<6} {'Total kWh':<10}")
+    print("-" * 40)
+    for row in table_data:
+        print(f"{row[0]:<12} {row[1]:<8} {row[2]:<6} {row[3]:<10}")
 
     plt.xlabel('Minutes')
     plt.ylabel('Car energy usage (kW)')
@@ -93,6 +160,5 @@ def plot_monthly_data(start_date):
 
 # Example usage
 if __name__ == "__main__":
-    #plot_daily_data('2015-07-12')
-    start_date = datetime.strptime('2015-07-12', '%Y-%m-%d')
+    start_date = datetime.strptime('2015-07-01', '%Y-%m-%d')
     plot_monthly_data(start_date)

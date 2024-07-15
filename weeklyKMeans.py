@@ -1,9 +1,9 @@
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 from datetime import datetime, timedelta
+from sklearn.cluster import KMeans
 
 def plot_car_energy_usage(user_date):
     # Load and preprocess the data
@@ -58,7 +58,12 @@ def plot_car_energy_usage(user_date):
         if final_segment_max < 3.0:
             df_trimmed[last_segment:] = 0
 
-    return array, df_trimmed
+    # Perform k-means clustering
+    kmeans = KMeans(n_clusters=3)
+    df_trimmed_reshaped = df_trimmed.values.reshape(-1, 1)
+    clusters = kmeans.fit_predict(df_trimmed_reshaped)
+    
+    return array, df_trimmed, clusters
 
 # Dictionary of binary values to corresponding numbers
 binary_dict = {
@@ -130,7 +135,7 @@ def plot_weekly_data(start_date):
         user_date = date.strftime('%Y-%m-%d')
         
         # Call the daily plotting function
-        array, df_trimmed = plot_car_energy_usage(user_date)
+        array, df_trimmed, clusters = plot_car_energy_usage(user_date)
 
         if array is not None and df_trimmed is not None:
             # Get the binary peak value and its corresponding number
@@ -143,8 +148,8 @@ def plot_weekly_data(start_date):
             # Append data to table
             table_data.append([user_date, binary_value, result, f"{total_kwh:.2f} kWh"])
 
-            # Plot the data
-            plt.plot(array, df_trimmed, label=f'{user_date}')
+            # Plot the data with clusters
+            plt.scatter(array, df_trimmed, c=clusters, label=f'{user_date}', cmap='viridis')
 
     # Print the table
     print(f"{'Date':<12} {'Binary':<8} {'Value':<6} {'Total kWh':<10}")
@@ -154,13 +159,12 @@ def plot_weekly_data(start_date):
 
     plt.xlabel('Minutes')
     plt.ylabel('Car energy usage (kW)')
-    plt.title('Weekly Car Energy Usage')
+    plt.title('Weekly Car Energy Usage with Clusters')
     plt.legend()
     plt.grid(True)
     plt.show()
 
 # Example usage
 if __name__ == "__main__":
-    start_date = datetime.strptime('2015-07-12', '%Y-%m-%d')
+    start_date = datetime.strptime('2015-08-12', '%Y-%m-%d')
     plot_weekly_data(start_date)
-

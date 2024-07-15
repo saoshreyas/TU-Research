@@ -1,4 +1,3 @@
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -117,11 +116,11 @@ def get_peak_binary_value(df_trimmed):
 
     return binary_value
 
-def plot_weekly_data(start_date):
-    # Generate a list of dates for the week
-    dates = [start_date + timedelta(days=i) for i in range(7)]
+def plot_monthly_data(start_date):
+    # Generate a list of dates for the month (31 days)
+    dates = [start_date + timedelta(days=i) for i in range(31)]
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(12, 8))
 
     # Prepare table data
     table_data = []
@@ -141,26 +140,28 @@ def plot_weekly_data(start_date):
             total_kwh = ((df_trimmed.sum())/60)
             
             # Append data to table
-            table_data.append([user_date, binary_value, result, f"{total_kwh:.2f} kWh"])
-
-            # Plot the data
-            plt.plot(array, df_trimmed, label=f'{user_date}')
+            table_data.append((result, total_kwh))
 
     # Print the table
-    print(f"{'Date':<12} {'Binary':<8} {'Value':<6} {'Total kWh':<10}")
-    print("-" * 40)
+    print(f"{'Binary Value':<12} {'Total kWh':<10}")
+    print("-" * 25)
     for row in table_data:
-        print(f"{row[0]:<12} {row[1]:<8} {row[2]:<6} {row[3]:<10}")
+        print(f"{row[0]:<12} {row[1]:<10.2f}")
 
-    plt.xlabel('Minutes')
-    plt.ylabel('Car energy usage (kW)')
-    plt.title('Weekly Car Energy Usage')
-    plt.legend()
+    # Create scatter plot
+    binary_values = [row[0] for row in table_data]
+    kwh_values = [row[1] for row in table_data]
+    plt.scatter(binary_values, kwh_values, alpha=0.5, c=kwh_values, cmap='viridis')
+    plt.colorbar(label='kWh')
+
+    plt.xlabel('Binary Value')
+    plt.ylabel('Total kWh')
+    plt.title('Scatter Plot of Car Energy Usage by Binary Value')
+
     plt.grid(True)
     plt.show()
 
 # Example usage
 if __name__ == "__main__":
-    start_date = datetime.strptime('2015-07-12', '%Y-%m-%d')
-    plot_weekly_data(start_date)
-
+    start_date = datetime.strptime('2015-08-01', '%Y-%m-%d')
+    plot_monthly_data(start_date)
