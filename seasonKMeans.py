@@ -1,5 +1,5 @@
 # from sklearn.preprocessing import MinMaxScaler
-# from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
+# from sklearn.cluster import KMeans
 # import pandas as pd
 # import numpy as np
 # import matplotlib.pyplot as plt
@@ -71,35 +71,34 @@
 #     "00000": 0,
 #     "00001": 1,
 #     "00010": 2,
-#     "00011": 3,
-#     "00100": 4,
-#     "00101": 5,
-#     "00110": 6,
-#     "00111": 7,
-#     "01000": 8,
-#     "01001": 9,
-#     "01010": 10,
-#     "01011": 11,
-#     "01100": 12,
-#     "01101": 13,
-#     "01110": 14,
-#     "01111": 15,
-#     "10000": 16,
-#     "10001": 17,
-#     "10010": 18,
-#     "10011": 19,
-#     "10100": 20,
-#     "10101": 21,
-#     "10110": 22,
-#     "10111": 23,
-#     "11000": 24,
-#     "11001": 25,
-#     "11010": 26,
+#     "00100": 3,
+#     "01000": 4,
+#     "10000": 5,
+#     "00011": 6,
+#     "00101": 7,
+#     "01001": 8,
+#     "10001": 9,
+#     "00110": 10,
+#     "01010": 11,
+#     "10010": 12,
+#     "01100": 13,
+#     "10100": 14,
+#     "11000": 15,
+#     "00111": 16,
+#     "01101": 17,
+#     "11001": 18,
+#     "10101": 19,
+#     "01011": 20,
+#     "10011": 21,
+#     "11010": 22,
+#     "10110": 23,
+#     "01110": 24,
+#     "11100": 25,
+#     "01111": 26,
 #     "11011": 27,
-#     "11100": 28,
+#     "11101": 28,
 #     "11101": 29,
-#     "11110": 30,
-#     "11111": 31,
+#     "11111": 30,
 # }
 
 # def get_peak_binary_value(df_trimmed):
@@ -145,60 +144,57 @@
 #             total_kwh = ((df_trimmed.sum())/60)
             
 #             # Append data to table
-#             table_data.append((result, total_kwh))
+#             table_data.append((result, total_kwh, binary_value))
 
 #     # Print the table
 #     print(f"{'Binary Value':<12} {'Total kWh':<10}")
 #     print("-" * 25)
 #     for row in table_data:
-#         print(f"{row[0]:<12} {row[1]:<10.2f}")
+#         binary_value_str = str(row[0]) if row[0] is not None else "None"
+#         print(f"{binary_value_str:<12} {row[1]:<10.2f}")
 
 #     # Convert table data to a DataFrame for clustering
-#     df_table = pd.DataFrame(table_data, columns=['Binary Value', 'Total kWh'])
+#     df_table = pd.DataFrame(table_data, columns=['Binary Value', 'Total kWh', 'Binary Label'])
+    
+#     # Keep original values for labeling
+#     original_values = df_table[['Binary Value', 'Total kWh', 'Binary Label']].copy()
 
-#     # Apply Min-Max scaling
+#     # Apply Min-Max scaling for clustering
 #     scaler = MinMaxScaler()
 #     df_table[['Binary Value', 'Total kWh']] = scaler.fit_transform(df_table[['Binary Value', 'Total kWh']])
 
-#     # Perform hierarchical clustering
-#     Z = linkage(df_table[['Binary Value', 'Total kWh']], method='ward')
-    
-#     # Plot the dendrogram
-#     plt.figure(figsize=(12, 8))
-#     dendrogram(Z)
-#     plt.title('Hierarchical Clustering Dendrogram')
-#     plt.xlabel('Sample index')
-#     plt.ylabel('Distance')
-#     plt.show()
+#     # Perform K-means clustering
+#     num_clusters = 4  # Define the number of clusters
+#     kmeans = KMeans(n_clusters=num_clusters, random_state=42)
+#     df_table['Cluster'] = kmeans.fit_predict(df_table[['Binary Value', 'Total kWh']])
 
-#     # Choose the number of clusters by visual inspection of the dendrogram
-#     num_clusters = 4  # Adjust based on dendrogram
-#     df_table['Cluster'] = fcluster(Z, num_clusters, criterion='maxclust')
-
-#     # Create scatter plot
+#     # Create scatter plot using original values for axes labels
 #     plt.figure(figsize=(12, 8))
-#     scatter = plt.scatter(df_table['Binary Value'], df_table['Total kWh'], c=df_table['Cluster'], cmap='viridis', alpha=0.5)
+#     scatter = plt.scatter(original_values['Binary Value'], original_values['Total kWh'], c=df_table['Cluster'], cmap='viridis', alpha=0.5)
 #     plt.colorbar(scatter, label='Cluster')
+
+#     # Add vertical dashed lines at specified x-values if they exist
+#     for x_value in [5.5, 15.5, 24.5, 28.5]:
+#         plt.axvline(x=x_value, color='red', linestyle='--', linewidth=1)
 
 #     plt.xlabel('Binary Value')
 #     plt.ylabel('Total kWh')
-#     plt.title('Scatter Plot of Car Energy Usage by Binary Value with Hierarchical Clustering')
+#     plt.title('Scatter Plot of Car Energy Usage by Binary Value with K-means Clustering')
 
 #     plt.grid(True)
 #     plt.show()
 
-# # Example usage
 # if __name__ == "__main__":
-#     start_date = datetime.strptime('2015-07-01', '%Y-%m-%d')
+#     start_date = datetime.strptime('2015-03-21', '%Y-%m-%d')
 #     plot_seasonal_data(start_date)
-
+import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
-from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
+from sklearn.cluster import KMeans
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 from datetime import datetime, timedelta
+from scipy.spatial.distance import cdist
 
 def plot_car_energy_usage(user_date):
     # Load and preprocess the data
@@ -265,35 +261,34 @@ binary_dict = {
     "00000": 0,
     "00001": 1,
     "00010": 2,
-    "00011": 3,
-    "00100": 4,
-    "00101": 5,
-    "00110": 6,
-    "00111": 7,
-    "01000": 8,
-    "01001": 9,
-    "01010": 10,
-    "01011": 11,
-    "01100": 12,
-    "01101": 13,
-    "01110": 14,
-    "01111": 15,
-    "10000": 16,
-    "10001": 17,
-    "10010": 18,
-    "10011": 19,
-    "10100": 20,
-    "10101": 21,
-    "10110": 22,
-    "10111": 23,
-    "11000": 24,
-    "11001": 25,
-    "11010": 26,
+    "00100": 3,
+    "01000": 4,
+    "10000": 5,
+    "00011": 6,
+    "00101": 7,
+    "01001": 8,
+    "10001": 9,
+    "00110": 10,
+    "01010": 11,
+    "10010": 12,
+    "01100": 13,
+    "10100": 14,
+    "11000": 15,
+    "00111": 16,
+    "01101": 17,
+    "11001": 18,
+    "10101": 19,
+    "01011": 20,
+    "10011": 21,
+    "11010": 22,
+    "10110": 23,
+    "01110": 24,
+    "11100": 25,
+    "01111": 26,
     "11011": 27,
-    "11100": 28,
+    "11101": 28,
     "11101": 29,
-    "11110": 30,
-    "11111": 31,
+    "11111": 30,
 }
 
 def get_peak_binary_value(df_trimmed):
@@ -342,10 +337,11 @@ def plot_seasonal_data(start_date):
             table_data.append((result, total_kwh, binary_value))
 
     # Print the table
-    print(f"{'Binary Value':<12} {'Total kWh':<10}")
-    print("-" * 25)
-    for row in table_data:
-        print(f"{row[0]:<12} {row[1]:<10.2f}")
+    # print(f"{'Binary Value':<12} {'Total kWh':<10}")
+    # print("-" * 25)
+    # for row in table_data:
+    #     binary_value_str = str(row[0]) if row[0] is not None else "None"
+    #     print(f"{binary_value_str:<12} {row[1]:<10.2f}")
 
     # Convert table data to a DataFrame for clustering
     df_table = pd.DataFrame(table_data, columns=['Binary Value', 'Total kWh', 'Binary Label'])
@@ -357,34 +353,42 @@ def plot_seasonal_data(start_date):
     scaler = MinMaxScaler()
     df_table[['Binary Value', 'Total kWh']] = scaler.fit_transform(df_table[['Binary Value', 'Total kWh']])
 
-    # Perform hierarchical clustering
-    Z = linkage(df_table[['Binary Value', 'Total kWh']], method='ward')
-    
-    # Plot the dendrogram
-    plt.figure(figsize=(12, 8))
-    dendrogram(Z)
-    plt.title('Hierarchical Clustering Dendrogram')
-    plt.xlabel('Sample index')
-    plt.ylabel('Distance')
-    plt.show()
-
-    # Choose the number of clusters by visual inspection of the dendrogram
-    num_clusters = 4  # Adjust based on dendrogram
-    df_table['Cluster'] = fcluster(Z, num_clusters, criterion='maxclust')
+    # Perform KMeans clustering
+    num_clusters = 8  # Adjust based on desired number of clusters
+    kmeans = KMeans(n_clusters=num_clusters, random_state=0)
+    df_table['Cluster'] = kmeans.fit_predict(df_table[['Binary Value', 'Total kWh']])
 
     # Create scatter plot using original values for axes labels
     plt.figure(figsize=(12, 8))
-    scatter = plt.scatter(original_values['Binary Value'], original_values['Total kWh'], c=df_table['Cluster'], cmap='viridis', alpha=0.5)
-    plt.colorbar(scatter, label='Cluster')
 
-    plt.xlabel('Binary Value')
+    # Generate distinct colors for each cluster dynamically
+    colors = plt.colormaps.get_cmap('tab10')
+
+    scatter = plt.scatter(original_values['Binary Value'], original_values['Total kWh'], c=df_table['Cluster'], cmap=colors, alpha=0.5)
+
+    # Add a legend with the number of clusters
+    handles, labels = scatter.legend_elements(prop="colors", alpha=0.6)
+    legend_labels = [f'Cluster {int(label)}' for label in range(len(handles))]  # Fixed this line to generate correct labels
+    plt.legend(handles, legend_labels, title="Clusters")
+
+    # Find the closest point to the centroid of each cluster and annotate with arrows
+    # for cluster in range(num_clusters):
+    #     cluster_points = df_table[df_table['Cluster'] == cluster][['Binary Value', 'Total kWh']]
+    #     centroid = kmeans.cluster_centers_[cluster]
+    #     distances = cdist(cluster_points, [centroid], 'euclidean')
+    #     closest_point_idx = distances.argmin()
+    #     closest_point = cluster_points.iloc[closest_point_idx]
+
+    #     plt.annotate('', xy=(closest_point['Binary Value'], closest_point['Total kWh']), xytext=(centroid[0], centroid[1]),
+    #                  arrowprops=dict(facecolor='black', shrink=0.05))
+
+    plt.xlabel('Integer Value')
     plt.ylabel('Total kWh')
-    plt.title('Scatter Plot of Car Energy Usage by Binary Value with Hierarchical Clustering')
+    plt.title('Spring 2015 Daily EV Charging Pattern Identification with KMeans Clustering')
 
     plt.grid(True)
     plt.show()
 
-# Example usage
 if __name__ == "__main__":
-    start_date = datetime.strptime('2015-07-01', '%Y-%m-%d')
+    start_date = datetime.strptime('2015-03-21', '%Y-%m-%d')
     plot_seasonal_data(start_date)
