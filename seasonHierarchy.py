@@ -176,14 +176,14 @@ def plot_seasonal_data(start_date):
     plt.show()
 
     # Choose the number of clusters by visual inspection of the dendrogram
-    num_clusters = 18  # Adjust based on dendrogram
+    num_clusters = 13   # Adjust based on dendrogram
     df_table['Cluster'] = fcluster(Z, num_clusters, criterion='maxclust')
 
     # Create scatter plot using original values for axes labels
     plt.figure(figsize=(12, 8))
 
     # Generate distinct colors for each cluster dynamically
-    colors = plt.cm.get_cmap('tab10', num_clusters)
+    colors = plt.cm.get_cmap('tab20', num_clusters)
 
     scatter = plt.scatter(original_values['Binary Value'], original_values['Total kWh'], c=df_table['Cluster'], cmap=colors, alpha=0.5)
     
